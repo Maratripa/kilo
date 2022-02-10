@@ -26,8 +26,8 @@ struct editorConfig E;
 /*** terminal ***/
 
 void die(const char *s) {
-    write(STDOUT_FILENO, "\x1b[2J", 4);
-    write(STDOUT_FILENO, "\x1b[H", 3);
+    write(STDOUT_FILENO, "\x1b[2J", 4); // Clear screen
+    write(STDOUT_FILENO, "\x1b[H", 3); // Set cursor to 1, 1
 
     perror(s);
     exit(1);
@@ -45,13 +45,13 @@ void enableRawMode() {
     }
     atexit(disableRawMode);
 
-    struct termios raw = E.orig_termios;
+    struct termios raw = E.orig_termios; // Copy terminal attrs
     raw.c_iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
     raw.c_oflag &= ~(OPOST);
     raw.c_cflag &= ~(CS8);
     raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-    raw.c_cc[VMIN] = 0;
-    raw.c_cc[VTIME] = 1;
+    raw.c_cc[VMIN] = 0; // Minimum bytes to read
+    raw.c_cc[VTIME] = 1; // Maximum time to wait for input in 1/10 of a second
 
     if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1) {
         die("tcsetattr");
@@ -131,6 +131,7 @@ void abFree(struct abuf *ab) {
 void editorDrawRows(struct abuf *ab) {
     int y;
 
+    // Draw tildas
     for (y = 0; y < E.screenrows; y++) {
         abAppend(ab, "~", 1);
 
@@ -143,12 +144,14 @@ void editorDrawRows(struct abuf *ab) {
 void editorRefreshScreen() {
     struct abuf ab = ABUF_INIT;
 
-    abAppend(&ab, "\x1b[2J", 4);
-    abAppend(&ab, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[?25l", 6); // Hide cursor
+    abAppend(&ab, "\x1b[2J", 4); // Clear all screen
+    abAppend(&ab, "\x1b[H", 3); // Set cursor to 1, 1
 
     editorDrawRows(&ab);
     
-    abAppend(&ab, "\x1b[H", 3);
+    abAppend(&ab, "\x1b[H", 3); // Set cursor to 1, 1
+    abAppend(&ab, "\x1b[?25h", 6); // Show cursor
 
     write(STDOUT_FILENO, ab.b, ab.len);
     abFree(&ab);

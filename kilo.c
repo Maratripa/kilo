@@ -104,6 +104,17 @@ char *C_HL_keywords[] = {
     "void|", NULL
 };
 
+char *PY_HL_extensions[] = { ".py", NULL};
+char *PY_HL_keywords[] = {
+	"and", "as", "assert", "break", "class", "continue", "def", "del", "elif",
+	"else", "except", "False", "finally", "for", "from", "global", "if", "import",
+	"in", "is", "lambda", "None", "nonlocal", "not", "or", "pass", "raise", "return",
+	"True", "try", "while", "with", "with", "yield",
+
+	"int|", "float|", "str|", "list|", "set|", "dict|", "complex|", "tuple|", "range|",
+	"frozenset|", "bool|", "bytes|", "bytearray|", "memoryview|", NULL
+};
+
 struct editorSyntax HLDB[] = {
     {
         "c",
@@ -112,6 +123,13 @@ struct editorSyntax HLDB[] = {
         "//", "/*", "*/",
         HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
     },
+	{
+		"python",
+		PY_HL_extensions,
+		PY_HL_keywords,
+		"#", "\"\"\"", "\"\"\"",
+		HL_HIGHLIGHT_NUMBERS | HL_HIGHLIGHT_STRINGS
+	},
 };
 
 #define HLDB_ENTRIES (sizeof(HLDB) / sizeof(HLDB[0]))

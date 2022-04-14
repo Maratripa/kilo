@@ -89,9 +89,24 @@ struct editorConfig {
     time_t statusmsg_time;
     struct editorSyntax *syntax;
     struct termios orig_termios;
+
+    int largest_digits;
 };
 
 struct editorConfig E;
+
+/*** helpers ***/
+
+int countDigits(int n) {
+    int counter = 0;
+
+    while (n != 0) {
+        n = n / 10;
+        counter++;
+    }
+
+    return counter;
+}
 
 /*** filetypes ***/
 
@@ -510,8 +525,13 @@ void editorInsertRow(int at, char *s, size_t len) {
     E.row[at].hl = NULL;
 	E.row[at].hl_open_comment = 0;
     editorUpdateRow(&E.row[at]);
-
+    
     E.numrows++;
+
+    if (countDigits(E.numrows) > E.largest_digits) {
+        E.largest_digits = countDigits(E.numrows);
+    }
+
     E.dirty++;
 }
 
@@ -528,6 +548,11 @@ void editorDelRow(int at) {
     memmove(&E.row[at], &E.row[at + 1], sizeof(erow) * (E.numrows - at - 1));
 	for (int j = at; j < E.numrows - 1; j++) E.row[j].idx--;
     E.numrows--;
+
+    if (countDigits(E.numrows) < E.largest_digits) {
+        E.largest_digits = countDigits(E.numrows);
+    }
+
     E.dirty++;
 }
 
@@ -802,7 +827,7 @@ void editorDrawRows(struct abuf *ab) {
 
     for (y = 0; y < E.screenrows; y++) {
         int filerow = y + E.rowoff;
-        if (filerow >= E.numrows) {
+        if (filerow >= E.numrows) { // lines after file
             if (E.numrows == 0 && y == E.screenrows / 3) {
                 char welcome[80];
                 int welcomelen = snprintf(welcome, sizeof(welcome),
@@ -822,10 +847,26 @@ void editorDrawRows(struct abuf *ab) {
             } else {
                 abAppend(ab, "~", 1);
             }
-        } else {
+        } else { // lines with number
+            /* Find line number string */
+            char *line_number_full = malloc(E.largest_digits + 2);
+
+            int num_len = snprintf(NULL, 0, "%d", E.row[filerow].idx + 1);
+            int spaces = E.largest_digits - num_len;
+            char *just_number = malloc(num_len + 1);
+            snprintf(just_number, num_len + 1, "%d", E.row[filerow].idx + 1);
+
+            snprintf(line_number_full, E.largest_digits + 2, "%*s ", spaces, just_number);
+
+            
             int len = E.row[filerow].rsize - E.coloff;
             if (len < 0) len = 0;
             if (len > E.screencols) len = E.screencols;
+
+            abAppend(ab, line_number_full, E.largest_digits + 1);
+
+            free(just_number);
+            free(line_number_full);
             
             char *c = &E.row[filerow].render[E.coloff];
             unsigned char *hl = &E.row[filerow].hl[E.coloff];
@@ -1102,6 +1143,8 @@ void initEditor() {
     E.statusmsg[0] = '\0';
     E.statusmsg_time = 0;
     E.syntax = NULL;
+
+    E.largest_digits = 0;
 
     if (getWindowSize(&E.screenrows, &E.screencols) == -1) die("getWindowSize");
     E.screenrows -= 2;

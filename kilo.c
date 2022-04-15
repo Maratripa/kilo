@@ -506,14 +506,9 @@ void editorUpdateRow(erow *row) {
     row->render[idx] = '\0';
     row->rsize = idx;
 
-    char *line_number = malloc(countDigits(row->idx + 1) + 2); // could be + 2
-    snprintf(line_number, countDigits(row->idx + 1) + 2, "%d ", row->idx + 1);
-
     free(row->number);
-    row->number = malloc(sizeof(line_number));
-    memcpy(row->number, line_number, sizeof(line_number) + 1);
-
-    free(line_number);
+    row->number = malloc(countDigits(row->idx + 1) + 2);
+    snprintf(row->number, countDigits(row->idx + 1) + 2, "%d ", row->idx + 1);
 
     editorUpdateSyntax(row);
 }
@@ -657,7 +652,6 @@ char *editorRowsToString(int *buflen) {
         *p = '\n';
         p++;
     }
-
     return buf;
 }
 
@@ -864,8 +858,9 @@ void editorDrawRows(struct abuf *ab) {
         } else { // lines with number
 
             /* Find line number string */
-            
-            abAppend(ab, E.row[filerow].number, sizeof(E.row[filerow].number));
+            abAppend(ab, "\x1b[36m", 5);
+            abAppend(ab, E.row[filerow].number, countDigits(E.row[filerow].idx + 1) + 2);
+            abAppend(ab, "\x1b[0m", 4);
 
             int len = E.row[filerow].rsize - E.coloff;
             

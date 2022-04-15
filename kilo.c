@@ -72,11 +72,12 @@ typedef struct erow {
     char *render;
     unsigned char *hl;
 	int hl_open_comment;
+    char *number;
 } erow;
 
 struct editorConfig {
-    int cx, cy;
-    int rx;
+    int cx, cy; // Cursor x & y
+    int rx; // Rendering position of cursor
     int rowoff;
     int coloff;
     int screenrows;
@@ -465,6 +466,8 @@ int editorRowCxToRx(erow *row, int cx)
         rx++;
     }
 
+    rx += countDigits(row->idx + 1) + 1;
+
     return rx;
 }
 
@@ -503,6 +506,15 @@ void editorUpdateRow(erow *row) {
     row->render[idx] = '\0';
     row->rsize = idx;
 
+    char *line_number = malloc(countDigits(row->idx + 1) + 2); // could be + 2
+    snprintf(line_number, countDigits(row->idx + 1) + 2, "%d ", row->idx + 1);
+
+    free(row->number);
+    row->number = malloc(sizeof(line_number));
+    memcpy(row->number, line_number, sizeof(line_number) + 1);
+
+    free(line_number);
+
     editorUpdateSyntax(row);
 }
 
@@ -539,6 +551,8 @@ void editorFreeRow(erow *row) {
     free(row->render);
     free(row->chars);
     free(row->hl);
+
+    free(row->number);
 }
 
 void editorDelRow(int at) {
@@ -848,25 +862,12 @@ void editorDrawRows(struct abuf *ab) {
                 abAppend(ab, "~", 1);
             }
         } else { // lines with number
+
             /* Find line number string */
-            char *line_number_full = malloc(E.largest_digits + 2);
-
-            int num_len = snprintf(NULL, 0, "%d", E.row[filerow].idx + 1);
-            int spaces = E.largest_digits - num_len;
-            char *just_number = malloc(num_len + 1);
-            snprintf(just_number, num_len + 1, "%d", E.row[filerow].idx + 1);
-
-            snprintf(line_number_full, E.largest_digits + 2, "%*s ", spaces, just_number);
-
             
+            abAppend(ab, E.row[filerow].number, sizeof(E.row[filerow].number));
+
             int len = E.row[filerow].rsize - E.coloff;
-            if (len < 0) len = 0;
-            if (len > E.screencols) len = E.screencols;
-
-            abAppend(ab, line_number_full, E.largest_digits + 1);
-
-            free(just_number);
-            free(line_number_full);
             
             char *c = &E.row[filerow].render[E.coloff];
             unsigned char *hl = &E.row[filerow].hl[E.coloff];

@@ -72,7 +72,6 @@ typedef struct erow {
     char *render;
     unsigned char *hl;
 	int hl_open_comment;
-    char *number;
 } erow;
 
 struct editorConfig {
@@ -466,7 +465,7 @@ int editorRowCxToRx(erow *row, int cx)
         rx++;
     }
 
-    rx += countDigits(row->idx + 1) + 1;
+    rx += E.largest_digits + 1;
 
     return rx;
 }
@@ -506,10 +505,6 @@ void editorUpdateRow(erow *row) {
     row->render[idx] = '\0';
     row->rsize = idx;
 
-    free(row->number);
-    row->number = malloc(countDigits(row->idx + 1) + 2);
-    snprintf(row->number, countDigits(row->idx + 1) + 2, "%d ", row->idx + 1);
-
     editorUpdateSyntax(row);
 }
 
@@ -546,8 +541,6 @@ void editorFreeRow(erow *row) {
     free(row->render);
     free(row->chars);
     free(row->hl);
-
-    free(row->number);
 }
 
 void editorDelRow(int at) {
@@ -857,10 +850,30 @@ void editorDrawRows(struct abuf *ab) {
             }
         } else { // lines with number
 
-            /* Find line number string */
-            abAppend(ab, "\x1b[36m", 5);
-            abAppend(ab, E.row[filerow].number, countDigits(E.row[filerow].idx + 1) + 2);
-            abAppend(ab, "\x1b[0m", 4);
+            int numlen = snprintf(NULL, 0, "%d", filerow + 1);
+            int numspaces = E.largest_digits - numlen;
+            char *numberstring = malloc(E.largest_digits + 2);
+            
+            if (numspaces != 0) {
+                char *spaces = malloc(numspaces + 1);
+
+                for (int ii = 0; ii < numspaces; ii++) {
+                spaces[ii] = ' ';
+                }
+                spaces[numspaces] = '\0';
+
+                snprintf(numberstring, E.largest_digits + 2, "%s%d ", spaces, filerow + 1);
+                
+                free(spaces);
+
+            } else {
+                snprintf(numberstring, E.largest_digits + 2, "%d ", filerow + 1);
+            }
+            
+            abAppend(ab, numberstring, strlen(numberstring));
+            
+            free(numberstring);
+
 
             int len = E.row[filerow].rsize - E.coloff;
             

@@ -852,7 +852,7 @@ void editorDrawRows(struct abuf *ab) {
 
             int numlen = snprintf(NULL, 0, "%d", filerow + 1);
             int numspaces = E.largest_digits - numlen;
-            char *numberstring = malloc(E.largest_digits + 2);
+            char *numberstring = malloc(E.largest_digits + 1);
             
             if (numspaces != 0) {
                 char *spaces = malloc(numspaces + 1);
@@ -862,15 +862,18 @@ void editorDrawRows(struct abuf *ab) {
                 }
                 spaces[numspaces] = '\0';
 
-                snprintf(numberstring, E.largest_digits + 2, "%s%d ", spaces, filerow + 1);
+                snprintf(numberstring, E.largest_digits + 1, "%s%d", spaces, filerow + 1);
                 
                 free(spaces);
 
             } else {
-                snprintf(numberstring, E.largest_digits + 2, "%d ", filerow + 1);
+                snprintf(numberstring, E.largest_digits + 1, "%d", filerow + 1);
             }
             
+            abAppend(ab, "\x1b[1m", 4);
             abAppend(ab, numberstring, strlen(numberstring));
+            abAppend(ab, "\x1b[m", 3);
+            abAppend(ab, " ", 1);
             
             free(numberstring);
 
